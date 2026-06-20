@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ubi-tokenizer"
+version = "0.1.0"
+description = "Ubiquitous, dependency-free, pure-Python runtime for HuggingFace-tokenizers-style byte-level BPE."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "voidful" }]
+keywords = ["tokenizer", "bpe", "byte-level", "nlp", "huggingface"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+transcription = []
+
+[project.scripts]
+ubi-tokenizer = "ubi_tokenizer.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
