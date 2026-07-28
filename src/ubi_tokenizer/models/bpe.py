@@ -8,12 +8,14 @@ that encoding is byte-identical to the reference implementation.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Optional
 
 from ubi_tokenizer._validation import (
     reject_unimplemented_affixes,
     reject_unimplemented_dropout,
 )
+from ubi_tokenizer.errors import ModelError
 
 
 class Model:
@@ -86,10 +88,76 @@ class BPE(Model):
         self.merges = [tuple(m) for m in merges]
         self._rebuild()
 
-    # -- core merge logic (lifted from ByteLevelBPE._apply_bpe) ------------
+    # -- tokenization ------------------------------------------------------
     def tokenize(self, piece: str) -> list[str]:
-        """Apply BPE merges to one byte-mapped pre-token piece."""
-        symbols = tuple(piece)
+        """Turn one pre-token piece into subword tokens."""
+        if not piece:
+            return []
+        # A whole piece that is already a vocabulary entry is emitted as-is with
+        # no merging. GPT-4o / Llama-3 tokenizers rely on this.
+        if self.ignore_merges and piece in self.vocab:
+            return [piece]
+        return self._apply_merges(self._resolve_symbols(piece))
+
+    def _resolve_symbols(self, piece: str) -> list[str]:
+        """Map each character onto vocabulary tokens, resolving unknowns.
+
+        Runs *before* merging, because the tokens produced here -- byte-fallback
+        tokens and generated unks alike -- take part in merges themselves. A
+        vocabulary containing ``<0xE4><0xB8>`` with a merge over its two halves
+        tokenizes ``中`` as ``['<0xE4><0xB8>', '<0xAD>']``.
+
+        Unresolvable characters are dropped when there is no unk token, which is
+        what HuggingFace does.
+        """
+        symbols: list[str] = []
+        # HuggingFace holds at most one deferred unk, and what flushes it is
+        # load-bearing; see the byte-fallback branch below.
+        pending_unk = False
+        for character in piece:
+            if character in self.vocab:
+                if pending_unk:
+                    symbols.append(self._unk_token_or_raise())
+                    pending_unk = False
+                symbols.append(character)
+                continue
+            if self.byte_fallback:
+                byte_tokens = [
+                    f"<0x{value:02X}>" for value in character.encode("utf-8")
+                ]
+                # All-or-nothing per character: a single missing byte token sends
+                # the whole character down the unk path rather than emitting a
+                # partial expansion.
+                if all(token in self.vocab for token in byte_tokens):
+                    # Deliberately leaves pending_unk alone. HuggingFace defers a
+                    # pending unk past a successful byte expansion, so with
+                    # <0xE4> missing, '中é' gives ['<0xC3>', '<0xA9>', '<unk>'].
+                    # Probably an upstream quirk, but byte-parity is the point of
+                    # this package, so it is reproduced rather than corrected.
+                    symbols.extend(byte_tokens)
+                    continue
+            if self.unk_token is None:
+                continue
+            if pending_unk and not self.fuse_unk:
+                symbols.append(self._unk_token_or_raise())
+            pending_unk = True
+        if pending_unk:
+            symbols.append(self._unk_token_or_raise())
+        return symbols
+
+    def _unk_token_or_raise(self) -> str:
+        """Return the unk token, or fail if the vocabulary has no id for it."""
+        if self.unk_token not in self.vocab:
+            raise ModelError(
+                f"unk token {self.unk_token!r} is not in the vocabulary, so "
+                "out-of-vocabulary input cannot be represented"
+            )
+        return self.unk_token
+
+    # -- core merge logic (lifted from ByteLevelBPE._apply_bpe) ------------
+    def _apply_merges(self, symbols: Sequence[str]) -> list[str]:
+        """Apply BPE merges to already-resolved symbols."""
+        symbols = tuple(symbols)
         if len(symbols) < 2:
             return list(symbols)
         while True:
