@@ -10,6 +10,11 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from ubi_tokenizer._validation import (
+    reject_unimplemented_affixes,
+    reject_unimplemented_dropout,
+)
+
 
 class Model:
     """Abstract base for tokenization models."""
@@ -47,8 +52,14 @@ class BPE(Model):
         byte_fallback: bool = False,
         ignore_merges: bool = False,
     ) -> None:
+        reject_unimplemented_dropout(dropout)
+        reject_unimplemented_affixes(continuing_subword_prefix, end_of_word_suffix)
         self.vocab: dict[str, int] = dict(vocab) if vocab else {}
         self.merges: list[tuple[str, str]] = [tuple(m) for m in (merges or [])]
+        # Accepted rather than rejected: a cache is a pure optimization, so its
+        # absence cannot change output. HuggingFace does not serialize it into
+        # tokenizer.json either, so to_dict() stays faithful by omitting it.
+        self.cache_capacity = cache_capacity
         self.dropout = dropout
         self.unk_token = unk_token
         self.continuing_subword_prefix = continuing_subword_prefix
