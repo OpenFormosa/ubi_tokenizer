@@ -61,3 +61,24 @@ Reconstructs text from tokens.
 - `BpeTrainer(vocab_size, min_frequency, special_tokens=None, ...)` — in-memory
   greedy trainer. For large/distributed training use UbiTok; this is for small
   corpora and tests.
+
+## Unimplemented options
+
+`BPE` and `BpeTrainer` accept the full HuggingFace option set so that a
+`tokenizer.json` round-trips unchanged. Options that are not implemented raise
+`UnsupportedFeatureError` when set to a value that would change tokenization,
+rather than being accepted and ignored:
+
+| Option | Accepted values | Rejected values |
+| --- | --- | --- |
+| `dropout` | `None`, `0.0` | anything in `(0, 1]` — outside `[0, 1]` raises `ModelError` |
+| `continuing_subword_prefix` | `None`, `""` | any non-empty string |
+| `end_of_word_suffix` | `None`, `""` | any non-empty string |
+
+The accepted values are genuine no-ops in HuggingFace as well, so files that
+tokenize correctly today keep loading — GPT-2-lineage exports ship `""` for both
+affix options.
+
+`cache_capacity` is accepted and retained but not yet used. It is not rejected
+because a cache is a pure optimization: its absence cannot change output.
+HuggingFace does not serialize it into `tokenizer.json`, so `to_dict()` omits it.
