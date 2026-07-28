@@ -14,6 +14,7 @@ from collections import Counter
 from collections.abc import Iterable, Iterator
 from typing import Optional
 
+from ubi_tokenizer._validation import reject_unimplemented_affixes
 from ubi_tokenizer.byte_level import BYTE_ENCODER, encode_token_bytes
 from ubi_tokenizer.models.bpe import BPE
 from ubi_tokenizer.pre_tokenizers.byte_level import ByteLevel
@@ -40,6 +41,7 @@ class BpeTrainer(Trainer):
         continuing_subword_prefix: Optional[str] = None,
         end_of_word_suffix: Optional[str] = None,
     ) -> None:
+        reject_unimplemented_affixes(continuing_subword_prefix, end_of_word_suffix)
         self.vocab_size = vocab_size
         self.min_frequency = min_frequency
         self.special_tokens = list(special_tokens or [])

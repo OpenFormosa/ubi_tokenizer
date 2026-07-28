@@ -21,6 +21,10 @@ dependencies = []
 
 [project.optional-dependencies]
 transcription = []
+# Only needed to regenerate tests/fixtures/hf_bpe_flags.json; the test suite
+# itself runs on the standard library alone. The tokenizers pin is deliberate:
+# the recorded ground truth includes version-sensitive behaviour.
+dev = ["pytest", "tokenizers==0.23.1"]
 
 [project.scripts]
 ubi-tokenizer = "ubi_tokenizer.__main__:main"
