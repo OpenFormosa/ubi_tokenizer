@@ -99,4 +99,4 @@ PostProcessor → Decoder** (see [`docs/components.md`](docs/components.md)).
 
 ## License
 
-MIT © 2026 voidful
+Apache License 2.0 © 2026 OpenFormosa contributors. See [LICENSE](LICENSE).

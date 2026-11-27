@@ -8,12 +8,12 @@ version = "0.1.0"
 description = "Ubiquitous, dependency-free, pure-Python runtime for HuggingFace-tokenizers-style byte-level BPE."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [{ name = "voidful" }]
 keywords = ["tokenizer", "bpe", "byte-level", "nlp", "huggingface"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
